@@ -282,9 +282,6 @@ function WebApiModel(){
     }
 
     self.insert = function(){
-        
-
-        var webId = 'F1AbEIRAQC7zjPUOfBqai218IAwTs2n73045hGAxAANOhDHzgPTrVo7xcTlEOw2c5RZ4_ZwUElTUlYxXE5VR1JFRU5cTlVHUkVFTlxMSVRUTEUgUk9DS1xFWFRSVURJTkcgUFJPQ0VTU1xFUVVJUE1FTlRcQi0wNDV8RlVFTA'
         var actionUrl = self.apiUrl()+ '/streams/'+ self.currentPlots()[0].WebId +'/value';
         alert(actionUrl);
         return;
