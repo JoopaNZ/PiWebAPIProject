@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="en">
+    <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+            <link rel="stylesheet" href="custom.css">
+            <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+            <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    </head>
+<body class="py-4">
+
+    <div class="modal" id="modalServerInfo" tabindex="-1" role="dialog">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Set up PIWebAPI connection</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-6">
+                                <p>
+                                        Enter PI WebAPI url, for example https://devdata.osisoft.com/piwebapi/
+                                </p>
+                                <div class="form-group">
+                                        <input type="text" class="form-control" data-bind="value: apiUrl" placeholder="PI WebAPI Url">    
+                                </div>
+                                <div class="form-group">
+                                        <input type="text" class="form-control" placeholder="User name" data-bind="value: userName">
+                                </div>
+                                <div class="form-group">
+                                        <input type="password" class="form-control" placeholder="Password" data-bind="value: pwd">
+                                </div>
+                                <button type="button" class="btn btn-primary" data-bind="click: function(){listDatabases(); return false;}">Connect</button>
+                        </div>
+                        <!-- ko if: servers().length > 0-->
+                        <div class="col=6">
+                            <p>Servers:</p>
+                                <ul class="list-group small" data-bind="foreach: servers">
+                                    <li class="list-group-item" data-bind="html: name"></li>
+                                </ul>
+                            <p>Select Asset Database to use</p>
+                                <ul class="list-group" data-bind="foreach: assetDatabases">
+                                    <li class="list-group-item" data-bind="html: name, css:{'active':selected() == true ? 'yellow':''}, click: $root.selectDatabase"></li>
+                                </ul>
+                        </div>
+                        <!-- /ko-->
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" data-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container ">
+        <h1>TTTMVLS Tool for PI Web API</h1>
+        <p class="p-3 mb-5 bg-light rounded">As name suggests, TTTMVLS Tool (The Tool That Makes Very Little Sense - tool), is not really useful for anything.
+            It just demostrates the use GET and POST verbs with PI WebAPI to access PI data.<br />
+            TTTMVLS has been built to work (relatively) well with <a href="https://devdata.osisoft.com/piwebapi" target="_blank">OSISOft's public WebAPI endpoint</a> with Basic Authentication
+            (as long as you know the username and password)
+        </p>
+        <h5>Q: But what does it do?</h5>
+        <p>
+            TTTMVLS Tool lets you search for elements AF database and then display a box-plot for one or more selected attributes.
+            Box-plots are very handy to have more statistical visualisation instead of traditional line or bar charts.
+        </p>    
+        <p>
+            <h5>Instructions</h5>
+            <ol>
+                <li>Start by selecting the PIWebAPI server and AssetServer to use.</li>
+                <li>Search Elements, you can use wildcards too. Element names with space must be wrapped inside ""</li>
+                <li>Tool will display a list of elements matching your serch. Clicking down arrow will show the list of numeric attributes which can be plotted</li>
+                <li>Click an attribute to add it to plot, click it again to remove it from plot</li>
+                <li>Data insert field is visible only when only ONE element & attribute is selected in search results. Enter value to insert to selected attribute and click Insert button.
+                    </p>
+                </li>
+            </ol>
+        </p>
+        <button class="btn btn-primary" data-toggle="modal" data-target="#modalServerInfo" data-bind="text: selectedDbName() === undefined?'Click here to start your journey with TTTMVLS':'Change database'"></button>
+
+        <div data-bind="visible: selectedDbName() != undefined">
+            <h5>Selected database: <span data-bind="html: selectedDbName"></span></h5>
+            <div class="row">
+                    <div class="col-6">
+                            <strong>Search</strong>
+                            <p>Search an element by name, you can use wildcards in names. Make sure to wrap names with spaces inside quotes: "Element name with space"<br>
+                                Start and end time selections are optional
+                            </p>
+                    </div>
+                    
+            </div>
+            <div class="row">
+                <div class="col-6">
+                    <div class="form-group">
+                        <input type="text" class="form-control" id="txtSearch" data-bind="value: elementToSearch" placeholder="Element name">
+                    </div>
+                    <div class="row">
+                        <div class="form-group col-6"><input type="text" class="form-control" id="txtStart" placeholder="Start time (Pi time)" data-bind="value: start"></div>
+                        <div class="form-group col-6"><input type="text" class="form-control" id="txtEnd" placeholder="End time (Pi time)"  data-bind="value: end"></div>
+                    </div>
+                    <div class="text-right">
+                        <button class="btn btn-primary" data-bind="click:$root.searchForElement">Search</button>
+                    </div>
+                </div>
+                <div class="col-6" data-bind="visible: singleAttributeSelected">
+                    <div class="form-group">
+                        <input type="text" class="form-control"  data-bind="value: dataToInsert" placeholder="Value to insert to selected attribute">
+                    </div>
+                    <div class="text-right">
+                        <button class="btn btn-primary" data-bind="click:$root.insert">Insert</button>
+                    </div>
+                    <div class="alert alert-warning">Insert functionality is not tested due limitations of available PI WebAPI endpoints:
+                        <ol>
+                            <li>OSISoft's devdata WebAPI provides read-access only</li>
+                            <li>We (Mercury) have only one WebAPI which is production environment and our internal security policy does not allow adding new CORS origins or wildcarding it.</li>
+                        </ol>
+    
+                        
+                    </div>
+                </div>
+            </div>
+    
+            <div class="row">
+                <div class="col-4" data-bind="foreach: searchResult">
+                    <div class="dropdown" style="margin-bottom:2px">
+                        <button type="button" class="btn  dropdown-toggle" href="#" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"  data-bind="html: Name, css:{'btn-info':isPlotted(), 'btn-secondary':!isPlotted()}"></button>
+                        <div class="dropdown-menu"  data-bind="foreach: attributes">
+                            <a class="dropdown-item" href="#" data-bind="html:Name, click: function(){$root.getPlotData($data, $parent)}, css:{'active':selected()}">Action</a>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-8" id="plot"></div>
+            </div>
+        </div>
+        
+        
+    </div>
+</div>
+
+    
+</body>  
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
+
+<script src="knockout-latest.js"></script> 
+<script src="logic.js"></script>
+<script>
+$(function(){
+
+    
+
+    var model = new WebApiModel();
+    //model.apiUrl = 'https://devdata.osisoft.com/piwebapi/';
+    ko.options.deferUpdates = true;
+
+    ko.applyBindings(model);
+    //$('#modalServerInfo').modal('show')
+
+    $('.tree li:has(ul)').addClass('parent_li').find(' > span').attr('title', 'Collapse this branch');
+    $('.tree li.parent_li > span').on('click', function (e) {
+        var children = $(this).parent('li.parent_li').find(' > ul > li');
+        if (children.is(":visible")) {
+            children.hide('fast');
+            $(this).attr('title', 'Expand this branch').find(' > i').addClass('icon-plus-sign').removeClass('icon-minus-sign');
+        } else {
+            children.show('fast');
+            $(this).attr('title', 'Collapse this branch').find(' > i').addClass('icon-minus-sign').removeClass('icon-plus-sign');
+        }
+        e.stopPropagation();
+    });
+})
+</script>
+</html>
